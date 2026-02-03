@@ -6,7 +6,7 @@
 |------|------|------|
 | [New API](https://github.com/Calcium-Ion/new-api) | LLM API 统一管理与转发（AI 模型聚合中转） | 3000 |
 | [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) | OpenAI/Gemini/Claude 等兼容 API 代理 | 8317 |
-| [LobeHub](https://github.com/lobehub/lobehub) | 开源 AI 聊天前端（含 S3、PostgreSQL、Redis） | 3210（Lobe）、9000（RustFS） |
+| [LobeHub](https://github.com/lobehub/lobehub) | 开源 AI 聊天前端（含 S3、PostgreSQL、Redis） | 3210（Lobe）、9002/9003（RustFS） |
 
 由 [coda8](https://github.com/coda8/coda8) 根据 [xx025/xx025#4](https://github.com/xx025/xx025/issues/4) 创建。
 
@@ -14,7 +14,7 @@
 
 - Docker 与 Docker Compose（或 `docker compose` v2）
 - 足够磁盘与内存（建议 4GB+ 内存，10GB+ 磁盘）
-- 以下端口未被占用：**3000**（New API）、**8317**（CLIProxyAPI）、**9000/9001/3210**（LobeHub/RustFS）。若端口冲突，请修改 `docker-compose.yml` 中对应端口的 `published` 值。
+- 以下端口未被占用：**3000**（New API）、**8317**（CLIProxyAPI）、**9002/9003**（RustFS）、**3210**（Lobe）。默认 RustFS 用 9002/9003 以免与占用 9000 的 Docker 管理面板冲突；若冲突请改 compose 中 `published` 与 Lobe 的 `S3_PUBLIC_DOMAIN`。
 
 ## 快速开始
 
@@ -32,7 +32,7 @@ docker compose up -d
 - CLIProxyAPI API: http://localhost:8317  
 - **CLIProxyAPI 管理界面**: http://localhost:8317/management.html（管理密钥见下表）  
 - LobeHub: http://localhost:3210  
-- RustFS（S3）: http://localhost:9000  
+- RustFS（S3）: http://localhost:9002  
 
 ## 默认账号与密码
 
@@ -79,7 +79,7 @@ LobeHub 是**带服务端的完整聊天前端**，不是纯静态页：
 
 New API / CLIProxyAPI 只做** API 转发与密钥管理**，无用户界面、不存会话；LobeHub 负责**界面 + 会话持久化 + 文件存储**，所以需要数据库和对象存储。若只想用 API、不需要聊天 UI，可以只跑 New API + CLIProxyAPI，不启动 lobe 相关服务。
 
-**容器间访问**：非浏览器前端用到的地址均使用 Docker 内部服务名（如 `postgresql`、`redis-lobe`、`rustfs:9000`、`searxng:8080`）；仅浏览器访问的资源（如 S3 图片 URL）使用 `S3_PUBLIC_DOMAIN`（默认 `http://localhost:9000`），部署到公网时请改为实际域名或 IP。
+**容器间访问**：非浏览器前端用到的地址均使用 Docker 内部服务名（如 `postgresql`、`redis-lobe`、`rustfs:9000`、`searxng:8080`）；仅浏览器访问的资源（如 S3 图片 URL）使用 `S3_PUBLIC_DOMAIN`（默认 `http://localhost:9002`，避免与宿主机 9000 冲突），部署到公网时请改为实际域名或 IP。
 
 ## 故障排除
 

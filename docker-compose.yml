@@ -116,6 +116,7 @@ services:
     networks:
       - llm-net
 
+  # 宿主机 9002/9003，避免与占用 9000 的 Docker 管理面板等冲突；容器间仍用 rustfs:9000
   rustfs:
     image: rustfs/rustfs:latest
     container_name: llm-stack-rustfs
@@ -124,8 +125,8 @@ services:
       RUSTFS_ACCESS_KEY: admin
       RUSTFS_SECRET_KEY: rustfs123
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9002:9000"
+      - "9003:9001"
     volumes:
       - rustfs_data:/data
     healthcheck:
@@ -182,7 +183,7 @@ services:
       S3_ACCESS_KEY: admin
       S3_ACCESS_KEY_ID: admin
       S3_SECRET_ACCESS_KEY: rustfs123
-      S3_PUBLIC_DOMAIN: "http://localhost:9000"
+      S3_PUBLIC_DOMAIN: "http://localhost:9002"
       S3_ENDPOINT: "http://rustfs:9000"
       LLM_VISION_IMAGE_USE_BASE64: "1"
       S3_SET_ACL: "0"
