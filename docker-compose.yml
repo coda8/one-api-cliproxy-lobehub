@@ -1,4 +1,4 @@
-# 一次性部署 One-API + CLIProxyAPI + LobeHub
+# 一次性部署 New API + CLIProxyAPI + LobeHub
 # 单文件即可用：复制本文件即可，无需克隆仓库、无需其他配置文件。生产环境请改默认密码。
 
 name: llm-stack
@@ -10,12 +10,12 @@ services:
     restart: always
     environment:
       TZ: Asia/Shanghai
-      MYSQL_ROOT_PASSWORD: "OneAPI@justsong"
-      MYSQL_USER: oneapi
+      MYSQL_ROOT_PASSWORD: "NewAPI@stack"
+      MYSQL_USER: newapi
       MYSQL_PASSWORD: "123456"
-      MYSQL_DATABASE: one-api
+      MYSQL_DATABASE: new-api
     volumes:
-      - oneapi_mysql_data:/var/lib/mysql
+      - newapi_mysql_data:/var/lib/mysql
     networks:
       - llm-net
     healthcheck:
@@ -24,31 +24,31 @@ services:
       timeout: 5s
       retries: 5
 
-  redis-oneapi:
+  redis-newapi:
     image: redis:latest
-    container_name: llm-stack-redis-oneapi
+    container_name: llm-stack-redis-newapi
     restart: always
     networks:
       - llm-net
 
-  one-api:
-    image: justsong/one-api:latest
-    container_name: llm-stack-one-api
+  new-api:
+    image: calciumion/new-api:latest
+    container_name: llm-stack-new-api
     restart: always
     command: --log-dir /app/logs
     ports:
       - "3000:3000"
     environment:
-      SQL_DSN: "oneapi:123456@tcp(mysql:3306)/one-api"
-      REDIS_CONN_STRING: "redis://redis-oneapi:6379"
+      SQL_DSN: "newapi:123456@tcp(mysql:3306)/new-api"
+      REDIS_CONN_STRING: "redis://redis-newapi:6379"
       SESSION_SECRET: "llm-stack-session-secret"
       TZ: Asia/Shanghai
     volumes:
-      - oneapi_data:/data
-      - oneapi_logs:/app/logs
+      - newapi_data:/data
+      - newapi_logs:/app/logs
     depends_on:
       mysql: { condition: service_healthy }
-      redis-oneapi: { condition: service_started }
+      redis-newapi: { condition: service_started }
     networks:
       - llm-net
 
@@ -201,9 +201,9 @@ services:
     restart: always
 
 volumes:
-  oneapi_mysql_data:
-  oneapi_data:
-  oneapi_logs:
+  newapi_mysql_data:
+  newapi_data:
+  newapi_logs:
   cliproxy_config:
   cliproxy_auths:
   cliproxy_logs:

@@ -1,10 +1,10 @@
-# One-API + CLIProxyAPI + LobeHub 一键部署
+# New API + CLIProxyAPI + LobeHub 一键部署
 
 一个 Docker Compose 仓库，用于**一次性**部署以下三个服务。**无需 .env**，便于在 Portainer 中直接拉取或粘贴 compose 部署。
 
 | 服务 | 说明 | 端口 |
 |------|------|------|
-| [One-API](https://github.com/songquanpeng/one-api) | LLM API 统一管理与转发 | 3000 |
+| [New API](https://github.com/Calcium-Ion/new-api) | LLM API 统一管理与转发（AI 模型聚合中转） | 3000 |
 | [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) | OpenAI/Gemini/Claude 等兼容 API 代理 | 8317 |
 | [LobeHub](https://github.com/lobehub/lobehub) | 开源 AI 聊天前端（含 S3、PostgreSQL、Redis） | 3210（Lobe）、9000（RustFS） |
 
@@ -23,11 +23,11 @@
 docker compose up -d
 ```
 
-也可从本仓库复制 [docker-compose.yml](https://raw.githubusercontent.com/coda8/one-api-cliproxy-lobehub/main/docker-compose.yml) 后使用。**Portainer**：新建 Stack → 粘贴该文件内容或从上述 URL 拉取，即可部署。生产环境建议在 compose 中修改默认密码。
+也可从本仓库复制 [docker-compose.yml](https://raw.githubusercontent.com/coda8/new-api-cliproxy-lobehub/main/docker-compose.yml) 后使用。**Portainer**：新建 Stack → 粘贴该文件内容或从上述 URL 拉取，即可部署。生产环境建议在 compose 中修改默认密码。
 
 ## 访问
 
-- One-API: http://localhost:3000  
+- New API: http://localhost:3000  
 - CLIProxyAPI: http://localhost:8317  
 - LobeHub: http://localhost:3210  
 - RustFS（S3）: http://localhost:9000  
@@ -36,9 +36,9 @@ docker compose up -d
 
 | 服务 | 用途 | 用户名/Key | 密码/说明 |
 |------|------|-------------|-----------|
-| **One-API 控制台** | 管理后台登录 | `root` | `123456`（首次登录后请立即修改） |
-| **One-API 用 MySQL** | 数据库（仅内部） | `root` | `OneAPI@justsong` |
-| **One-API 用 MySQL** | 应用连接用 | `oneapi` | `123456` |
+| **New API 控制台** | 管理后台登录 | `root` | `123456`（首次登录后请立即修改） |
+| **New API 用 MySQL** | 数据库（仅内部） | `root` | `NewAPI@stack` |
+| **New API 用 MySQL** | 应用连接用 | `newapi` | `123456` |
 | **CLIProxyAPI** | 调用 API 时的 Key | 请求头带 `Authorization: Bearer llm-stack-default-key` | 可在 compose 里改 init 容器生成的 config 或挂载自己的 config |
 | **LobeHub** | 聊天前端 | 无预设管理员 | 首次访问可自注册账号 |
 | **RustFS（S3）** | 控制台 / S3 兼容 | `admin` | `rustfs123` |
@@ -48,7 +48,7 @@ docker compose up -d
 
 ## 配置说明
 
-- **One-API**：首次访问 3000 端口完成初始化；数据库与 Redis 已内置。
+- **New API**：首次访问 3000 端口完成初始化；数据库与 Redis 已内置。
 - **CLIProxyAPI**：仓库内已带 `config.cliproxy.yaml`，可按需修改 `api-keys` 及各厂商登录，参见 [官方文档](https://help.router-for.me/docker/docker-compose)。
 - **LobeHub**：PostgreSQL、Redis、RustFS 与 S3 桶已配置；如需改密码，请直接编辑 `docker-compose.yml` 中对应环境变量。
 
@@ -61,6 +61,6 @@ docker compose down
 
 ## 相关链接
 
-- [One-API](https://github.com/songquanpeng/one-api)
+- [New API](https://github.com/Calcium-Ion/new-api) · [文档](https://docs.newapi.pro/)
 - [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) · [文档](https://help.router-for.me/)
 - [LobeHub](https://github.com/lobehub/lobehub) · [自托管文档](https://lobehub.com/docs/self-hosting/platform/docker-compose)
