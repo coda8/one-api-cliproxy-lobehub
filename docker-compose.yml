@@ -191,6 +191,7 @@ services:
       REDIS_URL: "redis://redis-lobe:6379"
       REDIS_PREFIX: lobechat
       REDIS_TLS: "0"
+      NEWAPI_PROXY_URL: "http://localhost:3000"
     restart: always
 
 configs:

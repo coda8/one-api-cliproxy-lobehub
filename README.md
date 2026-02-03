@@ -53,7 +53,20 @@ docker compose up -d
 
 - **New API**：首次访问 3000 端口完成初始化；数据库与 Redis 已内置。
 - **CLIProxyAPI**：配置由 compose 内 `configs` 内联注入；管理界面首次启动后约 30 秒内可能 404（拉取面板资源），稍后刷新即可。修改 api-keys 或管理密钥请编辑 `docker-compose.yml` 中 `configs.cliproxy_config_yaml.content`。参见 [官方文档](https://help.router-for.me/docker/docker-compose)。
-- **LobeHub**：需设置 `KEY_VAULTS_SECRET`（加密存储用，compose 中已给默认值，生产请用 `openssl rand -base64 32` 生成并替换）；PostgreSQL、Redis、RustFS/S3、SearXNG 已配置，见下方「为什么 Lobe 用这么多组件」。
+- **LobeHub**：需设置 `KEY_VAULTS_SECRET`（加密存储用，compose 中已给默认值，生产请用 `openssl rand -base64 32` 生成并替换）；PostgreSQL、Redis、RustFS/S3、SearXNG 已配置。**模型指向 New API**：见下方「在 Lobe 中配置 New API」。
+
+## 在 Lobe 中配置 New API（模型代理商）
+
+本栈已通过环境变量为 Lobe 预设 **New API 代理地址**（`NEWAPI_PROXY_URL=http://localhost:3000`），你只需在 Lobe 里填 **API Key** 即可使用。
+
+1. 打开 **New API 控制台**：http://localhost:3000（或 http://你的服务器IP:3000），用 `root` / `123456` 登录，在「渠道」或「令牌」里**新建一个 API Key**（或使用已有 Key）。
+2. 打开 **LobeHub**：http://localhost:3210（或你的 Lobe 地址），登录后点击左下角 **设置** → **语言模型**。
+3. 找到 **NewAPI** 提供商：
+   - **代理地址**：已由环境变量设为 `http://localhost:3000`；若你是**远程访问** Lobe（用服务器 IP 打开），请改为 `http://你的服务器IP:3000`。
+   - **API Key**：粘贴在 New API 控制台创建的 Key（形如 `sk-xxx`）。
+4. 保存后，在对话里选择模型即可通过 New API 调用。
+
+若要用 **CLIProxyAPI** 而非 New API，可在 Lobe 的 **OpenAI** 提供商中填：代理地址 `http://localhost:8317/v1`，API Key 填 `llm-stack-default-key`（与 compose 中 configs 一致）。
 
 ## 自托管为何还要登录？
 
