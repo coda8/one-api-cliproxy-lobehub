@@ -53,19 +53,17 @@ services:
       - llm-net
 
   cliproxy-config-init:
-    image: alpine
+    image: eceasy/cli-proxy-api:latest
     container_name: llm-stack-cliproxy-config-init
     volumes:
       - cliproxy_config:/out
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        echo 'host: ""' > /out/config.yaml
-        echo 'port: 8317' >> /out/config.yaml
-        echo 'auth-dir: "~/.cli-proxy-api"' >> /out/config.yaml
-        echo 'api-keys:' >> /out/config.yaml
-        echo '  - "llm-stack-default-key"' >> /out/config.yaml
-        echo 'debug: false' >> /out/config.yaml
+        set -e
+        cp -a /CLIProxyAPI/. /out/
+        printf '%s\n' 'host: ""' 'port: 8317' 'auth-dir: "~/.cli-proxy-api"' 'api-keys:' '  - "llm-stack-default-key"' 'debug: false' > /out/config.yaml
+        test -f /out/config.yaml && test -x /out/CLIProxyAPI || exit 1
     restart: "no"
 
   cli-proxy-api:
