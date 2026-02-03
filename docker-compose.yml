@@ -61,9 +61,16 @@ services:
     command:
       - |
         set -e
+        echo "Copying app from image to volume..."
         cp -a /CLIProxyAPI/. /out/
+        chmod +x /out/CLIProxyAPI
+        echo "Writing config.yaml..."
         printf '%s\n' 'host: ""' 'port: 8317' 'auth-dir: "~/.cli-proxy-api"' 'api-keys:' '  - "llm-stack-default-key"' 'debug: false' > /out/config.yaml
-        test -f /out/config.yaml && test -x /out/CLIProxyAPI || exit 1
+        echo "Verifying..."
+        test -f /out/config.yaml || (echo "ERROR: config.yaml missing" >&2; exit 1)
+        test -x /out/CLIProxyAPI || (echo "ERROR: CLIProxyAPI not executable" >&2; exit 1)
+        /out/CLIProxyAPI -version 2>/dev/null || true
+        echo "cliproxy-config-init completed successfully."
     restart: "no"
 
   cli-proxy-api:
