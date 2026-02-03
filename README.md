@@ -68,6 +68,8 @@ LobeHub 是**带服务端的完整聊天前端**，不是纯静态页：
 
 New API / CLIProxyAPI 只做** API 转发与密钥管理**，无用户界面、不存会话；LobeHub 负责**界面 + 会话持久化 + 文件存储**，所以需要数据库和对象存储。若只想用 API、不需要聊天 UI，可以只跑 New API + CLIProxyAPI，不启动 lobe 相关服务。
 
+**容器间访问**：非浏览器前端用到的地址均使用 Docker 内部服务名（如 `postgresql`、`redis-lobe`、`rustfs:9000`、`searxng:8080`）；仅浏览器访问的资源（如 S3 图片 URL）使用 `S3_PUBLIC_DOMAIN`（默认 `http://localhost:9000`），部署到公网时请改为实际域名或 IP。
+
 ## 故障排除
 
 - **LobeHub 报错 `KEY_VAULTS_SECRET` 或 `BETTER_AUTH_SECRET` is not set**：compose 中已配置默认值；生产环境请用 `openssl rand -base64 32` 生成并替换。

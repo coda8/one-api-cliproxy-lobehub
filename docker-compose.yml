@@ -73,13 +73,12 @@ services:
     networks:
       - llm-net
 
+  # 仅暴露 Lobe 前端端口；S3(RustFS) 单独成服务，容器间用服务名 rustfs:9000 访问
   lobe-network-service:
     image: alpine
     container_name: llm-stack-lobe-network
     restart: always
     ports:
-      - "9000:9000"
-      - "9001:9001"
       - "3210:3210"
     command: tail -f /dev/null
     networks:
@@ -120,11 +119,13 @@ services:
   rustfs:
     image: rustfs/rustfs:latest
     container_name: llm-stack-rustfs
-    network_mode: service:lobe-network-service
     environment:
       RUSTFS_CONSOLE_ENABLE: "true"
       RUSTFS_ACCESS_KEY: admin
       RUSTFS_SECRET_KEY: rustfs123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - rustfs_data:/data
     healthcheck:
@@ -133,8 +134,8 @@ services:
       timeout: 3s
       retries: 30
     command: ["--access-key", "admin", "--secret-key", "rustfs123", "/data"]
-    depends_on:
-      lobe-network-service: { condition: service_started }
+    networks:
+      - llm-net
 
   rustfs-init:
     image: minio/mc:latest
@@ -146,13 +147,14 @@ services:
       - -c
       - |
         set -ux
-        mc alias set rustfs "http://127.0.0.1:9000" "admin" "rustfs123" || exit 1
+        mc alias set rustfs "http://rustfs:9000" "admin" "rustfs123" || exit 1
         mc mb rustfs/lobe --ignore-existing || true
         echo '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::lobe/*"]}]}' > /tmp/bucket.json
         mc anonymous set-json /tmp/bucket.json rustfs/lobe || true
         echo "rustfs-init completed successfully."
         exit 0
-    network_mode: service:lobe-network-service
+    networks:
+      - llm-net
     restart: "no"
 
   searxng:
@@ -162,6 +164,7 @@ services:
     networks:
       - llm-net
 
+  # Lobe：仅浏览器访问用公网/ localhost（如 S3_PUBLIC_DOMAIN）；服务间用 Docker 服务名（postgresql/redis-lobe/rustfs/searxng）
   lobe:
     image: lobehub/lobehub:latest
     container_name: llm-stack-lobehub
@@ -180,7 +183,7 @@ services:
       S3_ACCESS_KEY_ID: admin
       S3_SECRET_ACCESS_KEY: rustfs123
       S3_PUBLIC_DOMAIN: "http://localhost:9000"
-      S3_ENDPOINT: "http://127.0.0.1:9000"
+      S3_ENDPOINT: "http://rustfs:9000"
       LLM_VISION_IMAGE_USE_BASE64: "1"
       S3_SET_ACL: "0"
       SEARXNG_URL: "http://searxng:8080"
