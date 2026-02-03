@@ -18,13 +18,13 @@
 
 ## 快速开始
 
-克隆本仓库或复制 **`docker-compose.yml`** 与 **`config.cliproxy.yaml`** 到同一目录（CLIProxyAPI 管理界面需此配置文件且需可写），无需 .env，执行：
+**复制一份 `docker-compose.yml`** 即可部署（配置由 compose 内 configs 内联注入），无需 .env 或额外文件。在任意目录执行：
 
 ```bash
 docker compose up -d
 ```
 
-仅用 Portainer 粘贴 compose 时，请同时上传或创建 `config.cliproxy.yaml`（可复制 [config.cliproxy.yaml](https://raw.githubusercontent.com/coda8/new-api-cliproxy-lobehub/main/config.cliproxy.yaml)）。生产环境建议修改 compose 与配置中的默认密码及管理密钥。
+**CLIProxyAPI 管理界面**（http://服务器:8317/management.html）：若刚启动时打开为 404，等约 30 秒再试（服务会从 GitHub 拉取面板资源）。登录管理密钥：`llm-stack-management-key`。生产环境请在 compose 的 `configs.cliproxy_config_yaml.content` 中修改默认 api-keys 与 `remote-management.secret-key`。
 
 ## 访问
 
@@ -41,8 +41,8 @@ docker compose up -d
 | **New API 控制台** | 管理后台登录 | `root` | `123456`（首次登录后请立即修改） |
 | **New API 用 MySQL** | 数据库（仅内部） | `root` | `NewAPI@stack` |
 | **New API 用 MySQL** | 应用连接用 | `newapi` | `123456` |
-| **CLIProxyAPI** | 调用 API 时的 Key | 请求头带 `Authorization: Bearer llm-stack-default-key` | 修改 `config.cliproxy.yaml` 中 api-keys |
-| **CLIProxyAPI 管理界面** | 管理后台登录 | 当前地址填 `http://服务器IP:8317` | 管理密钥：`llm-stack-management-key`（在 `config.cliproxy.yaml` 的 `remote-management.secret-key` 可改；首次登录后会被哈希写回） |
+| **CLIProxyAPI** | 调用 API 时的 Key | 请求头带 `Authorization: Bearer llm-stack-default-key` | 修改 compose 内 `configs.cliproxy_config_yaml.content` 中 api-keys |
+| **CLIProxyAPI 管理界面** | 管理后台登录 | 当前地址填 `http://服务器IP:8317` | 管理密钥：`llm-stack-management-key`（在 configs 中 `remote-management.secret-key` 可改） |
 | **LobeHub** | 聊天前端 | 无预设管理员 | 首次访问可自注册账号 |
 | **RustFS（S3）** | 控制台 / S3 兼容 | `admin` | `rustfs123` |
 | **PostgreSQL（LobeHub 用）** | 数据库（仅内部） | `postgres` | `lobechat123` |
@@ -52,8 +52,13 @@ docker compose up -d
 ## 配置说明
 
 - **New API**：首次访问 3000 端口完成初始化；数据库与 Redis 已内置。
-- **CLIProxyAPI**：使用 `config.cliproxy.yaml` 挂载为可写，便于管理密钥首次登录后被哈希写回、管理界面可用；修改 api-keys 或管理密钥请编辑该文件。参见 [官方文档](https://help.router-for.me/docker/docker-compose)。
+- **CLIProxyAPI**：配置由 compose 内 `configs` 内联注入；管理界面首次启动后约 30 秒内可能 404（拉取面板资源），稍后刷新即可。修改 api-keys 或管理密钥请编辑 `docker-compose.yml` 中 `configs.cliproxy_config_yaml.content`。参见 [官方文档](https://help.router-for.me/docker/docker-compose)。
 - **LobeHub**：PostgreSQL、Redis、RustFS 与 S3 桶已配置；如需改密码，请直接编辑 `docker-compose.yml` 中对应环境变量。
+
+## 故障排除
+
+- **CLIProxyAPI 不断重启、日志出现 `config.yaml: is a directory`**：多为曾用 bind 挂载 `./config.cliproxy.yaml` 且宿主机无该文件，Docker 会建为目录。解决：使用本仓库当前 compose（已改为 configs 注入，无需该文件），或删除该目录并放入真正的配置文件后重建容器。
+- **管理界面 404**：启动后面板从 GitHub 拉取，约 30 秒内再访问或刷新即可。
 
 ## 停止与清理
 
