@@ -49,7 +49,7 @@ docker compose up -d
 ## 配置说明
 
 - **New API**：首次访问 3000 端口完成初始化；数据库与 Redis 已内置。
-- **CLIProxyAPI**：由 init 容器首次将镜像内二进制与默认配置写入卷后主服务再启动；确认成功可执行 `docker compose logs cliproxy-config-init`，应见 `cliproxy-config-init completed successfully.`。仓库内另有 `config.cliproxy.yaml` 可参考，参见 [官方文档](https://help.router-for.me/docker/docker-compose)。
+- **CLIProxyAPI**：配置由 compose 内 `configs` 内联注入，使用镜像内二进制，无需 init 或额外卷；修改默认 api-keys 请编辑 `docker-compose.yml` 中 `configs.cliproxy_config_yaml.content`。参见 [官方文档](https://help.router-for.me/docker/docker-compose)。
 - **LobeHub**：PostgreSQL、Redis、RustFS 与 S3 桶已配置；如需改密码，请直接编辑 `docker-compose.yml` 中对应环境变量。
 
 ## 停止与清理
