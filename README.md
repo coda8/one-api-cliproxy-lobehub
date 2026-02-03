@@ -70,7 +70,7 @@ New API / CLIProxyAPI 只做** API 转发与密钥管理**，无用户界面、�
 
 ## 故障排除
 
-- **LobeHub 报错 `KEY_VAULTS_SECRET` is not set**：compose 中已配置默认值；生产环境请用 `openssl rand -base64 32` 生成并替换 `KEY_VAULTS_SECRET`。
+- **LobeHub 报错 `KEY_VAULTS_SECRET` 或 `BETTER_AUTH_SECRET` is not set**：compose 中已配置默认值；生产环境请用 `openssl rand -base64 32` 生成并替换。
 - **CLIProxyAPI 不断重启、日志出现 `config.yaml: is a directory`**：多为曾用 bind 挂载 `./config.cliproxy.yaml` 且宿主机无该文件，Docker 会建为目录。解决：使用本仓库当前 compose（已改为 configs 注入，无需该文件），或删除该目录并放入真正的配置文件后重建容器。
 - **管理界面 404**：启动后面板从 GitHub 拉取，约 30 秒内再访问或刷新即可。
 

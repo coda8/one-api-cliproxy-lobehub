@@ -173,6 +173,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://postgres:lobechat123@postgresql:5432/lobechat"
       KEY_VAULTS_SECRET: "llm-stack-lobe-key-vaults-secret-change-in-production"
+      BETTER_AUTH_SECRET: "llm-stack-lobe-better-auth-secret-change-in-production"
       S3_BUCKET: lobe
       S3_ENABLE_PATH_STYLE: "1"
       S3_ACCESS_KEY: admin
