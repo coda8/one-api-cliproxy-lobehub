@@ -1,5 +1,5 @@
 # 一次性部署 One-API + CLIProxyAPI + LobeHub
-# 便于 Portainer 部署：无需 .env，直接 up。生产环境请在下方替换默认密码。
+# 单文件即可用：复制本文件即可，无需克隆仓库、无需其他配置文件。生产环境请改默认密码。
 
 name: llm-stack
 
@@ -52,10 +52,28 @@ services:
     networks:
       - llm-net
 
+  cliproxy-config-init:
+    image: alpine
+    container_name: llm-stack-cliproxy-config-init
+    volumes:
+      - cliproxy_config:/out
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo 'host: ""' > /out/config.yaml
+        echo 'port: 8317' >> /out/config.yaml
+        echo 'auth-dir: "~/.cli-proxy-api"' >> /out/config.yaml
+        echo 'api-keys:' >> /out/config.yaml
+        echo '  - "llm-stack-default-key"' >> /out/config.yaml
+        echo 'debug: false' >> /out/config.yaml
+    restart: "no"
+
   cli-proxy-api:
     image: eceasy/cli-proxy-api:latest
     container_name: llm-stack-cliproxy
     restart: unless-stopped
+    depends_on:
+      cliproxy-config-init: { condition: service_completed_successfully }
     ports:
       - "8317:8317"
       - "8085:8085"
@@ -64,7 +82,7 @@ services:
       - "51121:51121"
       - "11451:11451"
     volumes:
-      - ./config.cliproxy.yaml:/CLIProxyAPI/config.yaml
+      - cliproxy_config:/CLIProxyAPI
       - cliproxy_auths:/root/.cli-proxy-api
       - cliproxy_logs:/CLIProxyAPI/logs
     networks:
@@ -138,8 +156,6 @@ services:
     container_name: llm-stack-rustfs-init
     depends_on:
       rustfs: { condition: service_healthy }
-    volumes:
-      - ./bucket.config.json:/bucket.config.json:ro
     entrypoint: /bin/sh
     command:
       - -c
@@ -147,7 +163,8 @@ services:
         set -eux
         mc alias set rustfs "http://127.0.0.1:9000" "admin" "rustfs123"
         mc mb rustfs/lobe --ignore-existing 2>/dev/null || true
-        mc anonymous set-json /bucket.config.json rustfs/lobe 2>/dev/null || true
+        echo '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::lobe/*"]}]}' > /tmp/bucket.json
+        mc anonymous set-json /tmp/bucket.json rustfs/lobe 2>/dev/null || true
     network_mode: service:lobe-network-service
     restart: "no"
 
@@ -187,6 +204,7 @@ volumes:
   oneapi_mysql_data:
   oneapi_data:
   oneapi_logs:
+  cliproxy_config:
   cliproxy_auths:
   cliproxy_logs:
   lobe_postgres_data:

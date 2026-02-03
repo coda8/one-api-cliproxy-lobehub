@@ -15,15 +15,15 @@
 - Docker 与 Docker Compose（或 `docker compose` v2）
 - 足够磁盘与内存（建议 4GB+ 内存，10GB+ 磁盘）
 
-## 快速开始（无需 .env）
+## 快速开始（单文件即可）
+
+**只需复制一份 `docker-compose.yml`**，无需克隆仓库、无需 .env 或其他配置文件，在任意目录执行：
 
 ```bash
-git clone https://github.com/coda8/one-api-cliproxy-lobehub.git
-cd one-api-cliproxy-lobehub
 docker compose up -d
 ```
 
-**Portainer**：在 Stack 中选择「从 Git 仓库拉取」填入本仓库 URL，或复制 `docker-compose.yml` 内容粘贴创建 Stack，无需配置环境变量即可部署。生产环境建议在 compose 中修改默认密码（MySQL、PostgreSQL、RustFS、One-API SESSION_SECRET 等）。
+也可从本仓库复制 [docker-compose.yml](https://raw.githubusercontent.com/coda8/one-api-cliproxy-lobehub/main/docker-compose.yml) 后使用。**Portainer**：新建 Stack → 粘贴该文件内容或从上述 URL 拉取，即可部署。生产环境建议在 compose 中修改默认密码。
 
 ## 访问
 
