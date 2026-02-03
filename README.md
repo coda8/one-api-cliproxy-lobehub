@@ -32,6 +32,20 @@ docker compose up -d
 - LobeHub: http://localhost:3210  
 - RustFS（S3）: http://localhost:9000  
 
+## 默认账号与密码
+
+| 服务 | 用途 | 用户名/Key | 密码/说明 |
+|------|------|-------------|-----------|
+| **One-API 控制台** | 管理后台登录 | `root` | `123456`（首次登录后请立即修改） |
+| **One-API 用 MySQL** | 数据库（仅内部） | `root` | `OneAPI@justsong` |
+| **One-API 用 MySQL** | 应用连接用 | `oneapi` | `123456` |
+| **CLIProxyAPI** | 调用 API 时的 Key | 请求头带 `Authorization: Bearer llm-stack-default-key` | 可在 compose 里改 init 容器生成的 config 或挂载自己的 config |
+| **LobeHub** | 聊天前端 | 无预设管理员 | 首次访问可自注册账号 |
+| **RustFS（S3）** | 控制台 / S3 兼容 | `admin` | `rustfs123` |
+| **PostgreSQL（LobeHub 用）** | 数据库（仅内部） | `postgres` | `lobechat123` |
+
+以上密码均在 `docker-compose.yml` 中可改；生产环境务必修改默认密码。
+
 ## 配置说明
 
 - **One-API**：首次访问 3000 端口完成初始化；数据库与 Redis 已内置。
