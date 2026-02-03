@@ -1,0 +1,9 @@
+# CLIProxyAPI 默认配置，可直接启动；按需修改 api-keys 等
+# 完整选项见 https://github.com/router-for-me/CLIProxyAPI
+
+host: ""
+port: 8317
+auth-dir: "~/.cli-proxy-api"
+api-keys:
+  - "llm-stack-default-key"
+debug: false
