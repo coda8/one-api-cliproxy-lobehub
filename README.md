@@ -43,7 +43,7 @@ docker compose up -d
 | **New API 用 MySQL** | 应用连接用 | `newapi` | `123456` |
 | **CLIProxyAPI** | 调用 API 时的 Key | 请求头带 `Authorization: Bearer llm-stack-default-key` | 修改 compose 内 `configs.cliproxy_config_yaml.content` 中 api-keys |
 | **CLIProxyAPI 管理界面** | 管理后台登录 | 当前地址填 `http://服务器IP:8317` | 管理密钥：`llm-stack-management-key`（在 configs 中 `remote-management.secret-key` 可改） |
-| **LobeHub** | 聊天前端 | 无预设管理员 | 首次访问可自注册账号 |
+| **LobeHub** | 聊天前端 | 无预设管理员 | 首次访问需**注册一个账号**（见下方「自托管为何还要登录」） |
 | **RustFS（S3）** | 控制台 / S3 兼容 | `admin` | `rustfs123` |
 | **PostgreSQL（LobeHub 用）** | 数据库（仅内部） | `postgres` | `lobechat123` |
 
@@ -54,6 +54,17 @@ docker compose up -d
 - **New API**：首次访问 3000 端口完成初始化；数据库与 Redis 已内置。
 - **CLIProxyAPI**：配置由 compose 内 `configs` 内联注入；管理界面首次启动后约 30 秒内可能 404（拉取面板资源），稍后刷新即可。修改 api-keys 或管理密钥请编辑 `docker-compose.yml` 中 `configs.cliproxy_config_yaml.content`。参见 [官方文档](https://help.router-for.me/docker/docker-compose)。
 - **LobeHub**：需设置 `KEY_VAULTS_SECRET`（加密存储用，compose 中已给默认值，生产请用 `openssl rand -base64 32` 生成并替换）；PostgreSQL、Redis、RustFS/S3、SearXNG 已配置，见下方「为什么 Lobe 用这么多组件」。
+
+## 自托管为何还要登录？
+
+LobeHub 的**服务端数据库版**设计上就会把会话、配置、文件存到数据库并关联到用户，所以**没有官方「免登录/访客模式」**，首次打开必须注册或登录。
+
+若你**不想用登录**，可以：
+
+1. **只部署 API，不用 Lobe 前端**：只启动 New API + CLIProxyAPI（不启动 lobe / postgresql / redis-lobe / rustfs 等），用别的**免登录**聊天前端（如 [Open WebUI](https://github.com/open-webui/open-webui)、[ChatGPT-Next-Web](https://github.com/ChatGPTNextWeb/ChatGPT-Next-Web) 等）对接同一套 API，或直接调 API。
+2. **继续用 Lobe**：首次访问时用邮箱自注册一个账号，之后同一浏览器即保持登录；自建环境只有你自己用的话，相当于「一次注册、长期免再登录」。
+
+若希望 Lobe 官方支持访客模式，可到 [LobeHub 仓库](https://github.com/lobehub/lobehub) 提 Issue / Discussion。
 
 ## 为什么 LobeHub 用这么多组件？
 
