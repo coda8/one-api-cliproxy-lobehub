@@ -196,6 +196,10 @@ configs:
       api-keys:
         - "llm-stack-default-key"
       debug: false
+      remote-management:
+        allow-remote: true
+        secret-key: "llm-stack-management-key"
+        disable-control-panel: false
 
 volumes:
   newapi_mysql_data:

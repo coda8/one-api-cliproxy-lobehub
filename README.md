@@ -29,7 +29,8 @@ docker compose up -d
 ## 访问
 
 - New API: http://localhost:3000  
-- CLIProxyAPI: http://localhost:8317  
+- CLIProxyAPI API: http://localhost:8317  
+- **CLIProxyAPI 管理界面**: http://localhost:8317/management.html（管理密钥见下表）  
 - LobeHub: http://localhost:3210  
 - RustFS（S3）: http://localhost:9000  
 
@@ -41,6 +42,7 @@ docker compose up -d
 | **New API 用 MySQL** | 数据库（仅内部） | `root` | `NewAPI@stack` |
 | **New API 用 MySQL** | 应用连接用 | `newapi` | `123456` |
 | **CLIProxyAPI** | 调用 API 时的 Key | 请求头带 `Authorization: Bearer llm-stack-default-key` | 修改 compose 内 `configs.cliproxy_config_yaml.content` 中的 api-keys |
+| **CLIProxyAPI 管理界面** | 管理后台登录 | 当前地址填 `http://服务器IP:8317` | 管理密钥：`llm-stack-management-key`（在 configs 中 `remote-management.secret-key` 可改） |
 | **LobeHub** | 聊天前端 | 无预设管理员 | 首次访问可自注册账号 |
 | **RustFS（S3）** | 控制台 / S3 兼容 | `admin` | `rustfs123` |
 | **PostgreSQL（LobeHub 用）** | 数据库（仅内部） | `postgres` | `lobechat123` |
