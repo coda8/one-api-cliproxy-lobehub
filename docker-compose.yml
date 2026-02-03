@@ -1,0 +1,208 @@
+# 一次性部署 One-API + CLIProxyAPI + LobeHub
+# 来源：https://github.com/songquanpeng/one-api
+#       https://github.com/router-for-me/CLIProxyAPI
+#       https://github.com/lobehub/lobehub
+
+name: llm-stack
+
+services:
+  # ---------- One-API 依赖 ----------
+  mysql:
+    image: mysql:8.2.0
+    container_name: llm-stack-mysql
+    restart: always
+    environment:
+      TZ: Asia/Shanghai
+      MYSQL_ROOT_PASSWORD: ${ONEAPI_MYSQL_ROOT_PASSWORD:-OneAPI@justsong}
+      MYSQL_USER: oneapi
+      MYSQL_PASSWORD: ${ONEAPI_MYSQL_PASSWORD:-123456}
+      MYSQL_DATABASE: one-api
+    volumes:
+      - oneapi_mysql_data:/var/lib/mysql
+    networks:
+      - llm-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-oneapi:
+    image: redis:latest
+    container_name: llm-stack-redis-oneapi
+    restart: always
+    networks:
+      - llm-net
+
+  one-api:
+    image: justsong/one-api:latest
+    container_name: llm-stack-one-api
+    restart: always
+    command: --log-dir /app/logs
+    ports:
+      - "${ONEAPI_PORT:-3000}:3000"
+    environment:
+      SQL_DSN: oneapi:${ONEAPI_MYSQL_PASSWORD:-123456}@tcp(mysql:3306)/one-api
+      REDIS_CONN_STRING: redis://redis-oneapi:6379
+      SESSION_SECRET: ${ONEAPI_SESSION_SECRET:-change_me_random_string}
+      TZ: Asia/Shanghai
+    volumes:
+      - oneapi_data:/data
+      - oneapi_logs:/app/logs
+    depends_on:
+      mysql: { condition: service_healthy }
+      redis-oneapi: { condition: service_started }
+    networks:
+      - llm-net
+
+  # ---------- CLIProxyAPI ----------
+  cli-proxy-api:
+    image: ${CLIPROXY_IMAGE:-eceasy/cli-proxy-api:latest}
+    container_name: llm-stack-cliproxy
+    restart: unless-stopped
+    ports:
+      - "${CLIPROXY_MAIN_PORT:-8317}:8317"
+      - "8085:8085"
+      - "1455:1455"
+      - "54545:54545"
+      - "51121:51121"
+      - "11451:11451"
+    volumes:
+      - ${CLIPROXY_CONFIG_PATH:-./config.cliproxy.yaml}:/CLIProxyAPI/config.yaml
+      - cliproxy_auths:/root/.cli-proxy-api
+      - cliproxy_logs:/CLIProxyAPI/logs
+    networks:
+      - llm-net
+
+  # ---------- LobeHub：网络与端口聚合 ----------
+  lobe-network-service:
+    image: alpine
+    container_name: llm-stack-lobe-network
+    restart: always
+    ports:
+      - "${RUSTFS_PORT:-9000}:9000"
+      - "9001:9001"
+      - "${LOBE_PORT:-3210}:3210"
+    command: tail -f /dev/null
+    networks:
+      - llm-net
+
+  postgresql:
+    image: paradedb/paradedb:latest-pg17
+    container_name: llm-stack-postgres
+    environment:
+      POSTGRES_DB: ${LOBE_DB_NAME:-lobechat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lobechat_change_me}
+    volumes:
+      - lobe_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - llm-net
+
+  redis-lobe:
+    image: redis:7-alpine
+    container_name: llm-stack-redis-lobe
+    command: redis-server --save 60 1000 --appendonly yes
+    volumes:
+      - lobe_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: always
+    networks:
+      - llm-net
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: llm-stack-rustfs
+    network_mode: service:lobe-network-service
+    environment:
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-admin}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-your_rustfs_secret}
+    volumes:
+      - rustfs_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9000/health >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    command: ["--access-key", "${RUSTFS_ACCESS_KEY:-admin}", "--secret-key", "${RUSTFS_SECRET_KEY:-your_rustfs_secret}", "/data"]
+    depends_on:
+      lobe-network-service: { condition: service_started }
+
+  rustfs-init:
+    image: minio/mc:latest
+    container_name: llm-stack-rustfs-init
+    depends_on:
+      rustfs: { condition: service_healthy }
+    volumes:
+      - ./bucket.config.json:/bucket.config.json:ro
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        set -eux
+        mc alias set rustfs "http://127.0.0.1:9000" "$${RUSTFS_ACCESS_KEY:-admin}" "$${RUSTFS_SECRET_KEY:-your_rustfs_secret}"
+        mc mb rustfs/lobe --ignore-existing 2>/dev/null || true
+        mc anonymous set-json /bucket.config.json rustfs/lobe 2>/dev/null || true
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-admin}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-your_rustfs_secret}
+    network_mode: service:lobe-network-service
+    restart: "no"
+
+  searxng:
+    image: searxng/searxng
+    container_name: llm-stack-searxng
+    restart: always
+    networks:
+      - llm-net
+
+  lobe:
+    image: lobehub/lobehub:latest
+    container_name: llm-stack-lobehub
+    network_mode: service:lobe-network-service
+    depends_on:
+      postgresql: { condition: service_healthy }
+      redis-lobe: { condition: service_healthy }
+      rustfs-init: { condition: service_completed_successfully }
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-lobechat_change_me}@postgresql:5432/${LOBE_DB_NAME:-lobechat}
+      S3_BUCKET: ${RUSTFS_LOBE_BUCKET:-lobe}
+      S3_ENABLE_PATH_STYLE: "1"
+      S3_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-admin}
+      S3_ACCESS_KEY_ID: ${RUSTFS_ACCESS_KEY:-admin}
+      S3_SECRET_ACCESS_KEY: ${RUSTFS_SECRET_KEY:-your_rustfs_secret}
+      S3_PUBLIC_DOMAIN: http://localhost:${RUSTFS_PORT:-9000}
+      S3_ENDPOINT: http://127.0.0.1:9000
+      LLM_VISION_IMAGE_USE_BASE64: "1"
+      S3_SET_ACL: "0"
+      SEARXNG_URL: http://searxng:8080
+      REDIS_URL: redis://redis-lobe:6379
+      REDIS_PREFIX: lobechat
+      REDIS_TLS: "0"
+    restart: always
+
+volumes:
+  oneapi_mysql_data:
+  oneapi_data:
+  oneapi_logs:
+  cliproxy_auths:
+  cliproxy_logs:
+  lobe_postgres_data:
+  lobe_redis_data:
+  rustfs_data:
+
+networks:
+  llm-net:
+    driver: bridge
