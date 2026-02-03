@@ -16,15 +16,15 @@
 - 足够磁盘与内存（建议 4GB+ 内存，10GB+ 磁盘）
 - 以下端口未被占用：**3000**（New API）、**8317**（CLIProxyAPI）、**9000/9001/3210**（LobeHub/RustFS）。若端口冲突，请修改 `docker-compose.yml` 中对应端口的 `published` 值。
 
-## 快速开始（单文件即可）
+## 快速开始
 
-**只需复制一份 `docker-compose.yml`**，无需克隆仓库、无需 .env 或其他配置文件，在任意目录执行：
+克隆本仓库或复制 **`docker-compose.yml`** 与 **`config.cliproxy.yaml`** 到同一目录（CLIProxyAPI 管理界面需此配置文件且需可写），无需 .env，执行：
 
 ```bash
 docker compose up -d
 ```
 
-也可从本仓库复制 [docker-compose.yml](https://raw.githubusercontent.com/coda8/new-api-cliproxy-lobehub/main/docker-compose.yml) 后使用。**Portainer**：新建 Stack → 粘贴该文件内容或从上述 URL 拉取，即可部署。生产环境建议在 compose 中修改默认密码。
+仅用 Portainer 粘贴 compose 时，请同时上传或创建 `config.cliproxy.yaml`（可复制 [config.cliproxy.yaml](https://raw.githubusercontent.com/coda8/new-api-cliproxy-lobehub/main/config.cliproxy.yaml)）。生产环境建议修改 compose 与配置中的默认密码及管理密钥。
 
 ## 访问
 
@@ -41,8 +41,8 @@ docker compose up -d
 | **New API 控制台** | 管理后台登录 | `root` | `123456`（首次登录后请立即修改） |
 | **New API 用 MySQL** | 数据库（仅内部） | `root` | `NewAPI@stack` |
 | **New API 用 MySQL** | 应用连接用 | `newapi` | `123456` |
-| **CLIProxyAPI** | 调用 API 时的 Key | 请求头带 `Authorization: Bearer llm-stack-default-key` | 修改 compose 内 `configs.cliproxy_config_yaml.content` 中的 api-keys |
-| **CLIProxyAPI 管理界面** | 管理后台登录 | 当前地址填 `http://服务器IP:8317` | 管理密钥：`llm-stack-management-key`（在 configs 中 `remote-management.secret-key` 可改） |
+| **CLIProxyAPI** | 调用 API 时的 Key | 请求头带 `Authorization: Bearer llm-stack-default-key` | 修改 `config.cliproxy.yaml` 中 api-keys |
+| **CLIProxyAPI 管理界面** | 管理后台登录 | 当前地址填 `http://服务器IP:8317` | 管理密钥：`llm-stack-management-key`（在 `config.cliproxy.yaml` 的 `remote-management.secret-key` 可改；首次登录后会被哈希写回） |
 | **LobeHub** | 聊天前端 | 无预设管理员 | 首次访问可自注册账号 |
 | **RustFS（S3）** | 控制台 / S3 兼容 | `admin` | `rustfs123` |
 | **PostgreSQL（LobeHub 用）** | 数据库（仅内部） | `postgres` | `lobechat123` |
@@ -52,7 +52,7 @@ docker compose up -d
 ## 配置说明
 
 - **New API**：首次访问 3000 端口完成初始化；数据库与 Redis 已内置。
-- **CLIProxyAPI**：配置由 compose 内 `configs` 内联注入，使用镜像内二进制，无需 init 或额外卷；修改默认 api-keys 请编辑 `docker-compose.yml` 中 `configs.cliproxy_config_yaml.content`。参见 [官方文档](https://help.router-for.me/docker/docker-compose)。
+- **CLIProxyAPI**：使用 `config.cliproxy.yaml` 挂载为可写，便于管理密钥首次登录后被哈希写回、管理界面可用；修改 api-keys 或管理密钥请编辑该文件。参见 [官方文档](https://help.router-for.me/docker/docker-compose)。
 - **LobeHub**：PostgreSQL、Redis、RustFS 与 S3 桶已配置；如需改密码，请直接编辑 `docker-compose.yml` 中对应环境变量。
 
 ## 停止与清理

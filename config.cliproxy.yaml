@@ -1,4 +1,4 @@
-# CLIProxyAPI 默认配置，可直接启动；按需修改 api-keys 等
+# CLIProxyAPI 默认配置，可直接启动；按需修改 api-keys、管理密钥等
 # 完整选项见 https://github.com/router-for-me/CLIProxyAPI
 
 host: ""
@@ -7,3 +7,8 @@ auth-dir: "~/.cli-proxy-api"
 api-keys:
   - "llm-stack-default-key"
 debug: false
+# 管理界面：http://服务器IP:8317/management.html ，登录用下方 secret-key
+remote-management:
+  allow-remote: true
+  secret-key: "llm-stack-management-key"
+  disable-control-panel: false
