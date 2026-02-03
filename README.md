@@ -14,6 +14,7 @@
 
 - Docker 与 Docker Compose（或 `docker compose` v2）
 - 足够磁盘与内存（建议 4GB+ 内存，10GB+ 磁盘）
+- 以下端口未被占用：**3000**（New API）、**8317**（CLIProxyAPI）、**9000/9001/3210**（LobeHub/RustFS）。若端口冲突，请修改 `docker-compose.yml` 中对应端口的 `published` 值。
 
 ## 快速开始（单文件即可）
 
@@ -39,7 +40,7 @@ docker compose up -d
 | **New API 控制台** | 管理后台登录 | `root` | `123456`（首次登录后请立即修改） |
 | **New API 用 MySQL** | 数据库（仅内部） | `root` | `NewAPI@stack` |
 | **New API 用 MySQL** | 应用连接用 | `newapi` | `123456` |
-| **CLIProxyAPI** | 调用 API 时的 Key | 请求头带 `Authorization: Bearer llm-stack-default-key` | 可在 compose 里改 init 容器生成的 config 或挂载自己的 config |
+| **CLIProxyAPI** | 调用 API 时的 Key | 请求头带 `Authorization: Bearer llm-stack-default-key` | 修改 compose 内 `configs.cliproxy_config_yaml.content` 中的 api-keys |
 | **LobeHub** | 聊天前端 | 无预设管理员 | 首次访问可自注册账号 |
 | **RustFS（S3）** | 控制台 / S3 兼容 | `admin` | `rustfs123` |
 | **PostgreSQL（LobeHub 用）** | 数据库（仅内部） | `postgres` | `lobechat123` |
