@@ -145,11 +145,13 @@ services:
     command:
       - -c
       - |
-        set -eux
-        mc alias set rustfs "http://127.0.0.1:9000" "admin" "rustfs123"
-        mc mb rustfs/lobe --ignore-existing 2>/dev/null || true
+        set -ux
+        mc alias set rustfs "http://127.0.0.1:9000" "admin" "rustfs123" || exit 1
+        mc mb rustfs/lobe --ignore-existing || true
         echo '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::lobe/*"]}]}' > /tmp/bucket.json
-        mc anonymous set-json /tmp/bucket.json rustfs/lobe 2>/dev/null || true
+        mc anonymous set-json /tmp/bucket.json rustfs/lobe || true
+        echo "rustfs-init completed successfully."
+        exit 0
     network_mode: service:lobe-network-service
     restart: "no"
 
