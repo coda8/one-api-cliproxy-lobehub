@@ -172,6 +172,7 @@ services:
       rustfs-init: { condition: service_completed_successfully }
     environment:
       DATABASE_URL: "postgresql://postgres:lobechat123@postgresql:5432/lobechat"
+      KEY_VAULTS_SECRET: "llm-stack-lobe-key-vaults-secret-change-in-production"
       S3_BUCKET: lobe
       S3_ENABLE_PATH_STYLE: "1"
       S3_ACCESS_KEY: admin

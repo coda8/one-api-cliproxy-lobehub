@@ -53,10 +53,24 @@ docker compose up -d
 
 - **New API**：首次访问 3000 端口完成初始化；数据库与 Redis 已内置。
 - **CLIProxyAPI**：配置由 compose 内 `configs` 内联注入；管理界面首次启动后约 30 秒内可能 404（拉取面板资源），稍后刷新即可。修改 api-keys 或管理密钥请编辑 `docker-compose.yml` 中 `configs.cliproxy_config_yaml.content`。参见 [官方文档](https://help.router-for.me/docker/docker-compose)。
-- **LobeHub**：PostgreSQL、Redis、RustFS 与 S3 桶已配置；如需改密码，请直接编辑 `docker-compose.yml` 中对应环境变量。
+- **LobeHub**：需设置 `KEY_VAULTS_SECRET`（加密存储用，compose 中已给默认值，生产请用 `openssl rand -base64 32` 生成并替换）；PostgreSQL、Redis、RustFS/S3、SearXNG 已配置，见下方「为什么 Lobe 用这么多组件」。
+
+## 为什么 LobeHub 用这么多组件？
+
+LobeHub 是**带服务端的完整聊天前端**，不是纯静态页：
+
+| 组件 | 作用 |
+|------|------|
+| **PostgreSQL** | 存用户、会话、消息、配置等结构化数据 |
+| **Redis** | 会话/缓存与实时能力 |
+| **RustFS（S3）** | 存图片、文件等对象存储，聊天里的上传与多模态依赖它 |
+| **SearXNG** | 可选：联网搜索（对话内搜索） |
+
+New API / CLIProxyAPI 只做** API 转发与密钥管理**，无用户界面、不存会话；LobeHub 负责**界面 + 会话持久化 + 文件存储**，所以需要数据库和对象存储。若只想用 API、不需要聊天 UI，可以只跑 New API + CLIProxyAPI，不启动 lobe 相关服务。
 
 ## 故障排除
 
+- **LobeHub 报错 `KEY_VAULTS_SECRET` is not set**：compose 中已配置默认值；生产环境请用 `openssl rand -base64 32` 生成并替换 `KEY_VAULTS_SECRET`。
 - **CLIProxyAPI 不断重启、日志出现 `config.yaml: is a directory`**：多为曾用 bind 挂载 `./config.cliproxy.yaml` 且宿主机无该文件，Docker 会建为目录。解决：使用本仓库当前 compose（已改为 configs 注入，无需该文件），或删除该目录并放入真正的配置文件后重建容器。
 - **管理界面 404**：启动后面板从 GitHub 拉取，约 30 秒内再访问或刷新即可。
 
