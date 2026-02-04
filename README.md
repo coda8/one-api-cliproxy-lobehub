@@ -1,84 +1,114 @@
-# New API + CLIProxyAPI 一键部署
+# New API + CLIProxyAPI + LobeHub 一键部署
 
-一个 Docker Compose 仓库，可一次性拉起 **New API** 与 **CLIProxyAPI** 两大核心服务，专注提供统一的 LLM API 聚合与高兼容代理能力。整个栈无需 `.env`，可以直接在 Portainer / Docker Compose 中复制粘贴部署。
-
-## 服务概览
+一个 Docker Compose 仓库，用于**一次性**部署以下三个服务。**无需 .env**，便于在 Portainer 中直接拉取或粘贴 compose 部署。
 
 | 服务 | 说明 | 端口 |
 |------|------|------|
-| [New API](https://github.com/Calcium-Ion/new-api) | LLM API 聚合中转、线路管理、密钥路由 | 3000 |
-| [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) | OpenAI / Gemini / Claude 等兼容 API 代理 | 8317 |
+| [New API](https://github.com/Calcium-Ion/new-api) | LLM API 统一管理与转发（AI 模型聚合中转） | 3000 |
+| [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) | OpenAI/Gemini/Claude 等兼容 API 代理 | 8317 |
+| [LobeHub](https://github.com/lobehub/lobehub) | 开源 AI 聊天前端（含 S3、PostgreSQL、Redis） | 3210（Lobe）、9002/9003（RustFS） |
+
+由 [coda8](https://github.com/coda8/coda8) 根据 [xx025/xx025#4](https://github.com/xx025/xx025/issues/4) 创建。
 
 ## 前置要求
 
 - Docker 与 Docker Compose（或 `docker compose` v2）
-- 建议资源：2 GB+ 内存、5 GB+ 磁盘
-- 确保端口 **3000**、**8317** 未被占用
+- 足够磁盘与内存（建议 4GB+ 内存，10GB+ 磁盘）
+- 以下端口未被占用：**3000**（New API）、**8317**（CLIProxyAPI）、**9002/9003**（RustFS）、**3210**（Lobe）。默认 RustFS 用 9002/9003 以免与占用 9000 的 Docker 管理面板冲突；若冲突请改 compose 中 `published` 与 Lobe 的 `S3_PUBLIC_DOMAIN`。
 
 ## 快速开始
 
-1. 克隆本仓库：
-   ```bash
-   git clone https://github.com/coda8/new-api-cliproxy-lobehub.git
-   cd new-api-cliproxy-lobehub
-   ```
-2. 启动所有服务：
-   ```bash
-   docker compose up -d
-   ```
-3. 首次进入 New API 控制台（http://服务器IP:3000）初始化并更改默认密码。
+**复制一份 `docker-compose.yml`** 即可部署（配置由 compose 内 configs 内联注入），无需 .env 或额外文件。在任意目录执行：
 
-## 访问入口
+```bash
+docker compose up -d
+```
 
-- New API 控制台： http://localhost:3000
-- CLIProxyAPI： http://localhost:8317
-- CLIProxyAPI 管理界面： http://localhost:8317/management.html （登录密钥见下表）
+**CLIProxyAPI 管理界面**（http://服务器:8317/management.html）：若刚启动时打开为 404，等约 30 秒再试（服务会从 GitHub 拉取面板资源）。登录管理密钥：`llm-stack-management-key`。生产环境请在 compose 的 `configs.cliproxy_config_yaml.content` 中修改默认 api-keys 与 `remote-management.secret-key`。
 
-## 默认账号 / 密钥
+## 访问
 
-| 服务 | 用途 | 默认值 |
-|------|------|--------|
-| New API 控制台 | 管理后台 | 账号 `root` / 密码 `123456` |
-| MySQL（New API 内部使用） | 应用连接 | `newapi` / `123456` |
-| CLIProxyAPI 调用 | API Key | `llm-stack-default-key`（Authorization: Bearer ...） |
-| CLIProxyAPI 管理界面 | 登录密钥 | `llm-stack-management-key` |
+- New API: http://localhost:3000  
+- CLIProxyAPI API: http://localhost:8317  
+- **CLIProxyAPI 管理界面**: http://localhost:8317/management.html（管理密钥见下表）  
+- LobeHub: http://localhost:3210  
+- RustFS（S3）: http://localhost:9002  
 
-> ⚠️ 以上凭证均写在 `docker-compose.yml` 中，部署到生产环境务必修改。
+## 默认账号与密码
+
+| 服务 | 用途 | 用户名/Key | 密码/说明 |
+|------|------|-------------|-----------|
+| **New API 控制台** | 管理后台登录 | `root` | `123456`（首次登录后请立即修改） |
+| **New API 用 MySQL** | 数据库（仅内部） | `root` | `NewAPI@stack` |
+| **New API 用 MySQL** | 应用连接用 | `newapi` | `123456` |
+| **CLIProxyAPI** | 调用 API 时的 Key | 请求头带 `Authorization: Bearer llm-stack-default-key` | 修改 compose 内 `configs.cliproxy_config_yaml.content` 中 api-keys |
+| **CLIProxyAPI 管理界面** | 管理后台登录 | 当前地址填 `http://服务器IP:8317` | 管理密钥：`llm-stack-management-key`（在 configs 中 `remote-management.secret-key` 可改） |
+| **LobeHub** | 聊天前端 | 无预设管理员 | 首次访问需**注册一个账号**（见下方「自托管为何还要登录」） |
+| **RustFS（S3）** | 控制台 / S3 兼容 | `admin` | `rustfs123` |
+| **PostgreSQL（LobeHub 用）** | 数据库（仅内部） | `postgres` | `lobechat123` |
+
+以上密码均在 `docker-compose.yml` 中可改；生产环境务必修改默认密码。
 
 ## 配置说明
 
-### New API
-- 依赖 MySQL 与 Redis，容器启动后自动用内置 DSN.
-- `SESSION_SECRET`、`SQL_DSN` 等可在 compose 内覆盖。
+- **New API**：首次访问 3000 端口完成初始化；数据库与 Redis 已内置。
+- **CLIProxyAPI**：配置由 compose 内 `configs` 内联注入；管理界面首次启动后约 30 秒内可能 404（拉取面板资源），稍后刷新即可。修改 api-keys 或管理密钥请编辑 `docker-compose.yml` 中 `configs.cliproxy_config_yaml.content`。参见 [官方文档](https://help.router-for.me/docker/docker-compose)。
+- **LobeHub**：需设置 `KEY_VAULTS_SECRET`（加密存储用，compose 中已给默认值，生产请用 `openssl rand -base64 32` 生成并替换）；PostgreSQL、Redis、RustFS/S3、SearXNG 已配置。**模型指向 New API**：见下方「在 Lobe 中配置 New API」。
 
-### CLIProxyAPI
-- 配置通过 Docker `configs` 注入，文件内容位于 `docker-compose.yml` → `configs.cliproxy_config_yaml.content`。
-- 需要自定义 API Key、远程管理密钥或新增上游渠道时，修改该片段后重启容器即可。
+## 在 Lobe 中配置 New API（模型代理商）
 
-## 与前端/其他客户端对接
+本栈已通过环境变量为 Lobe 预设 **New API 代理地址**（`NEWAPI_PROXY_URL=http://localhost:3000`），你只需在 Lobe 里填 **API Key** 即可使用。
 
-本栈只聚焦 API 网关，可将任何聊天前端（如 [Open WebUI](https://github.com/open-webui/open-webui) 或 [ChatGPT-Next-Web](https://github.com/ChatGPTNextWeb/ChatGPT-Next-Web)）指向 New API 或 CLIProxyAPI：
+1. 打开 **New API 控制台**：http://localhost:3000（或 http://你的服务器IP:3000），用 `root` / `123456` 登录，在「渠道」或「令牌」里**新建一个 API Key**（或使用已有 Key）。
+2. 打开 **LobeHub**：http://localhost:3210（或你的 Lobe 地址），登录后点击左下角 **设置** → **语言模型**。
+3. 找到 **NewAPI** 提供商：
+   - **代理地址**：已由环境变量设为 `http://localhost:3000`；若你是**远程访问** Lobe（用服务器 IP 打开），请改为 `http://你的服务器IP:3000`。
+   - **API Key**：粘贴在 New API 控制台创建的 Key（形如 `sk-xxx`）。
+4. 保存后，在对话里选择模型即可通过 New API 调用。
 
-- **指向 New API**：HTTP 端点 `http://<你的服务器>:3000`，使用在控制台创建的 Token。
-- **指向 CLIProxyAPI**：HTTP 端点 `http://<你的服务器>:8317/v1`，Key 为配置中的 `api-keys`。
+若要用 **CLIProxyAPI** 而非 New API，可在 Lobe 的 **OpenAI** 提供商中填：代理地址 `http://localhost:8317/v1`，API Key 填 `llm-stack-default-key`（与 compose 中 configs 一致）。
+
+## 自托管为何还要登录？
+
+LobeHub 的**服务端数据库版**设计上就会把会话、配置、文件存到数据库并关联到用户，所以**没有官方「免登录/访客模式」**，首次打开必须注册或登录。
+
+若你**不想用登录**，可以：
+
+1. **只部署 API，不用 Lobe 前端**：只启动 New API + CLIProxyAPI（不启动 lobe / postgresql / redis-lobe / rustfs 等），用别的**免登录**聊天前端（如 [Open WebUI](https://github.com/open-webui/open-webui)、[ChatGPT-Next-Web](https://github.com/ChatGPTNextWeb/ChatGPT-Next-Web) 等）对接同一套 API，或直接调 API。
+2. **继续用 Lobe**：首次访问时用邮箱自注册一个账号，之后同一浏览器即保持登录；自建环境只有你自己用的话，相当于「一次注册、长期免再登录」。
+
+若希望 Lobe 官方支持访客模式，可到 [LobeHub 仓库](https://github.com/lobehub/lobehub) 提 Issue / Discussion。
+
+## 为什么 LobeHub 用这么多组件？
+
+LobeHub 是**带服务端的完整聊天前端**，不是纯静态页：
+
+| 组件 | 作用 |
+|------|------|
+| **PostgreSQL** | 存用户、会话、消息、配置等结构化数据 |
+| **Redis** | 会话/缓存与实时能力 |
+| **RustFS（S3）** | 存图片、文件等对象存储，聊天里的上传与多模态依赖它 |
+| **SearXNG** | 可选：联网搜索（对话内搜索） |
+
+New API / CLIProxyAPI 只做** API 转发与密钥管理**，无用户界面、不存会话；LobeHub 负责**界面 + 会话持久化 + 文件存储**，所以需要数据库和对象存储。若只想用 API、不需要聊天 UI，可以只跑 New API + CLIProxyAPI，不启动 lobe 相关服务。
+
+**容器间访问**：非浏览器前端用到的地址均使用 Docker 内部服务名（如 `postgresql`、`redis-lobe`、`rustfs:9000`、`searxng:8080`）；仅浏览器访问的资源（如 S3 图片 URL）使用 `S3_PUBLIC_DOMAIN`（默认 `http://localhost:9002`，避免与宿主机 9000 冲突），部署到公网时请改为实际域名或 IP。
 
 ## 故障排除
 
-- **CLIProxyAPI 启动报 `config.yaml: is a directory`**：通常因曾经把 `./config.cliproxy.yaml` 以 bind 方式挂载，同时宿主上存在同名目录导致。改用本仓库提供的 configs 注入方式或删除该目录即可。
-- **CLIProxyAPI 管理界面 404**：首次启动会从 GitHub 拉取静态资源，等待 ~30 秒再刷新。
-
-## 日常维护
-
-- 查看日志：`docker compose logs -f new-api` / `cli-proxy-api`
-- 升级镜像：`docker compose pull && docker compose up -d`
+- **LobeHub 报错 `KEY_VAULTS_SECRET` 或 `BETTER_AUTH_SECRET` is not set**：compose 中已配置默认值；生产环境请用 `openssl rand -base64 32` 生成并替换。
+- **CLIProxyAPI 不断重启、日志出现 `config.yaml: is a directory`**：多为曾用 bind 挂载 `./config.cliproxy.yaml` 且宿主机无该文件，Docker 会建为目录。解决：使用本仓库当前 compose（已改为 configs 注入，无需该文件），或删除该目录并放入真正的配置文件后重建容器。
+- **管理界面 404**：启动后面板从 GitHub 拉取，约 30 秒内再访问或刷新即可。
 
 ## 停止与清理
 
 ```bash
 docker compose down
-# 同时清理数据卷：docker compose down -v
+# 需同时删除数据卷时：docker compose down -v
 ```
 
-## License
+## 相关链接
 
-本仓库未单独声明 License，沿用上游项目许可，请在生产环境中遵守相应条款。
+- [New API](https://github.com/Calcium-Ion/new-api) · [文档](https://docs.newapi.pro/)
+- [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) · [文档](https://help.router-for.me/)
+- [LobeHub](https://github.com/lobehub/lobehub) · [自托管文档](https://lobehub.com/docs/self-hosting/platform/docker-compose)
