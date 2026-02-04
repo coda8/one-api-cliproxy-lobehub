@@ -1,5 +1,5 @@
-# 一次性部署 New API + CLIProxyAPI + LobeHub
-# 单文件即可：复制本文件即可部署；生产环境请改 configs.cliproxy_config_yaml 中密码与管理密钥。
+# 一次性部署 New API + CLIProxyAPI
+# 复制本文件即可部署；生产环境请修改 configs.cliproxy_config_yaml 中默认密钥与密码。
 
 name: llm-stack
 
@@ -52,7 +52,7 @@ services:
     networks:
       - llm-net
 
-  # CLIProxyAPI：config 由 configs 注入（保证是文件；bind 宿主机无文件时会变成目录导致启动失败）
+  # CLIProxyAPI：config 由 configs 注入，保证为文件（避免宿主机 bind 空文件被当成目录）
   cli-proxy-api:
     image: eceasy/cli-proxy-api:latest
     container_name: llm-stack-cliproxy
@@ -72,127 +72,6 @@ services:
       - cliproxy_logs:/CLIProxyAPI/logs
     networks:
       - llm-net
-
-  # 仅暴露 Lobe 前端端口；S3(RustFS) 单独成服务，容器间用服务名 rustfs:9000 访问
-  lobe-network-service:
-    image: alpine
-    container_name: llm-stack-lobe-network
-    restart: always
-    ports:
-      - "3210:3210"
-    command: tail -f /dev/null
-    networks:
-      - llm-net
-
-  postgresql:
-    image: paradedb/paradedb:latest-pg17
-    container_name: llm-stack-postgres
-    environment:
-      POSTGRES_DB: lobechat
-      POSTGRES_PASSWORD: lobechat123
-    volumes:
-      - lobe_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: always
-    networks:
-      - llm-net
-
-  redis-lobe:
-    image: redis:7-alpine
-    container_name: llm-stack-redis-lobe
-    command: redis-server --save 60 1000 --appendonly yes
-    volumes:
-      - lobe_redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    restart: always
-    networks:
-      - llm-net
-
-  # 宿主机 9002/9003，避免与占用 9000 的 Docker 管理面板等冲突；容器间仍用 rustfs:9000
-  rustfs:
-    image: rustfs/rustfs:latest
-    container_name: llm-stack-rustfs
-    environment:
-      RUSTFS_CONSOLE_ENABLE: "true"
-      RUSTFS_ACCESS_KEY: admin
-      RUSTFS_SECRET_KEY: rustfs123
-    ports:
-      - "9002:9000"
-      - "9003:9001"
-    volumes:
-      - rustfs_data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9000/health >/dev/null 2>&1 || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-    command: ["--access-key", "admin", "--secret-key", "rustfs123", "/data"]
-    networks:
-      - llm-net
-
-  rustfs-init:
-    image: minio/mc:latest
-    container_name: llm-stack-rustfs-init
-    depends_on:
-      rustfs: { condition: service_healthy }
-    entrypoint: /bin/sh
-    command:
-      - -c
-      - |
-        set -ux
-        mc alias set rustfs "http://rustfs:9000" "admin" "rustfs123" || exit 1
-        mc mb rustfs/lobe --ignore-existing || true
-        echo '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::lobe/*"]}]}' > /tmp/bucket.json
-        mc anonymous set-json /tmp/bucket.json rustfs/lobe || true
-        echo "rustfs-init completed successfully."
-        exit 0
-    networks:
-      - llm-net
-    restart: "no"
-
-  searxng:
-    image: searxng/searxng
-    container_name: llm-stack-searxng
-    restart: always
-    networks:
-      - llm-net
-
-  # Lobe：仅浏览器访问用公网/ localhost（如 S3_PUBLIC_DOMAIN）；服务间用 Docker 服务名（postgresql/redis-lobe/rustfs/searxng）
-  lobe:
-    image: lobehub/lobehub:latest
-    container_name: llm-stack-lobehub
-    network_mode: service:lobe-network-service
-    depends_on:
-      postgresql: { condition: service_healthy }
-      redis-lobe: { condition: service_healthy }
-      rustfs-init: { condition: service_completed_successfully }
-    environment:
-      DATABASE_URL: "postgresql://postgres:lobechat123@postgresql:5432/lobechat"
-      KEY_VAULTS_SECRET: "llm-stack-lobe-key-vaults-secret-change-in-production"
-      BETTER_AUTH_SECRET: "llm-stack-lobe-better-auth-secret-change-in-production"
-      S3_BUCKET: lobe
-      S3_ENABLE_PATH_STYLE: "1"
-      S3_ACCESS_KEY: admin
-      S3_ACCESS_KEY_ID: admin
-      S3_SECRET_ACCESS_KEY: rustfs123
-      S3_PUBLIC_DOMAIN: "http://localhost:9002"
-      S3_ENDPOINT: "http://rustfs:9000"
-      LLM_VISION_IMAGE_USE_BASE64: "1"
-      S3_SET_ACL: "0"
-      SEARXNG_URL: "http://searxng:8080"
-      REDIS_URL: "redis://redis-lobe:6379"
-      REDIS_PREFIX: lobechat
-      REDIS_TLS: "0"
-      NEWAPI_PROXY_URL: "http://localhost:3000"
-    restart: always
 
 configs:
   cliproxy_config_yaml:
@@ -214,9 +93,6 @@ volumes:
   newapi_logs:
   cliproxy_auths:
   cliproxy_logs:
-  lobe_postgres_data:
-  lobe_redis_data:
-  rustfs_data:
 
 networks:
   llm-net:
